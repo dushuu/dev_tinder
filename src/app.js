@@ -1,69 +1,32 @@
 const express = require("express");
-
+const connectDB = require("./config/database");
+const User = require("./models/user");
 const app = express();
 
-// app.get("/user",(req,res)=>{
-//     res.send({firstname:'dushal',lastname:'arora'})
-// })
-
-// app.post("/user",(req,res)=>{
-//     res.send("data saved in db!")
-// })
-
-// app.delete("/user",(req,res)=>{
-//     res.send('delete done')
-// })
-
-// app.get("/test",(req,res)=>{
-//     res.send("hello from server!")
-// })
-
-// app.post('/test',(req,res)=>{
-//     if(req === "123"){
-//         res.send('you are geting it')
-//     }else res.send('learning')
-// })
-
-// app.use("/hello",(req,res)=>{
-//     res.send("hellooooo")
-// })
-
-// app.use("/",(req,res)=>{
-//     res.send("dashboard")
-// })
-
-// app.get("/user/:userId/:name", (req, res)=>{
-//     console.log(req.params)
-//     res.send({first:'dushal'})
-// })
-
-app.use(
-  "/user",
-  (req, res, next) => {
-    // this fnction is known as route handler
-    // res.send("Route handler")
-
-    console.log("handling multiple response handler");
-    next();
-    // res.send('1st working')
-  },
-
-  (req, res, next) => {
-    console.log(
-      "multiple response handler for that we use another argumnet which is next"
-    );
-    // res.send("working");
-    next();
-  },
-
-  (req, res) => {
-    console.log(
-      "multiple response handler for that we use another argumnet which is next2"
-    );
-    res.send("working2");
+app.post("/signup", async (req, res) => {
+  const userObj = {
+    firstName: "Dushal",
+    lastName: "Arora",
+    emailId: "test@exampe.com",
+    password: "test",
+    gender: "male",
+  };
+  const user = new User(userObj);
+  try {
+    await user.save();
+    res.send("user added successfully");
+  } catch (err) {
+    res.status(400).send("error saving the user" + err.message);
   }
-);
-
-app.listen(3000, () => {
-  console.log("server is on at 3000");
 });
+
+connectDB()
+  .then(() => {
+    console.log("database connected");
+    app.listen(3000, () => {
+      console.log("server is on at 3000");
+    });
+  })
+  .catch((err) => {
+    console.error("not conected", err);
+  });
