@@ -10,7 +10,7 @@ const adminAuth = (req, res, next) => {
 
 const userAuth = (req, res, next) => {
   //there is another funtion app.all
-  const token = "xyzsss";
+  const token = "xyz";
   const isAdminAuthorized = token === "xyz";
   console.log("usr auth is getting checked")
   if (isAdminAuthorized) {
