@@ -32,43 +32,71 @@ app.get("/user", async (req, res) => {
 });
 
 //Feed api get all user
-app.get("/feed", async (req, res) => { 
-  try{
+app.get("/feed", async (req, res) => {
+  try {
     const users = await User.find({});
-    res.send(users)
-
-  }catch (err){
-    res.status(400).send("Some thing went wrong")
+    res.send(users);
+  } catch (err) {
+    res.status(400).send("Some thing went wrong");
   }
 });
 
 //delete user
 
-app.delete("/user",async (req,res)=>{
+app.delete("/user", async (req, res) => {
   const userId = req.body.userId;
 
-  try{
-    const user  = await User.findByIdAndDelete(userId)
-    res.send("user deleted sussessfullly")
-  }catch (err){
-    res.status(400).send("Some thing went wrong")
+  try {
+    const user = await User.findByIdAndDelete(userId);
+    res.send("user deleted sussessfullly");
+  } catch (err) {
+    res.status(400).send("Some thing went wrong");
   }
-})
+});
 
-//update user 
+//update user
 
-app.patch("/user", async (req, res) => {
-  const { userId, ...updateData } = req.body;
+app.patch("/user/:userId", async (req, res) => {
+  const updateData = req.body;
+  const userId = req.params.userId;
 
   if (!userId) {
     return res.status(400).json({ message: "userId is required" });
   }
 
+  // if (!mongoose.Types.ObjectId.isValid(userId)) {
+  //   return res.status(400).json({ message: "Invalid userId" });
+  // }
+
+  if (Object.keys(updateData).length === 0) {
+    return res.status(400).json({ message: "No data provided to update" });
+  }
+
+  const ALLOWED_UPDATES = ["photoUrl", "about", "gender", "age", "skills"];
+
+  const isUpdateAllowed = Object.keys(updateData).every((key) =>
+    ALLOWED_UPDATES.includes(key)
+  );
+
+  if (!isUpdateAllowed) {
+    return res.status(400).json({ message: "Update is not allowed" });
+  }
+
+  if (updateData.gender) {
+    updateData.gender = updateData.gender.toLowerCase();
+  }
+
   try {
+    if(updateData?.skills.length > 10){
+      throw new Error("Skills can not be more then 10")
+    }
     const user = await User.findByIdAndUpdate(
       userId,
-      updateData,
-      { returnDocument: "after" }
+      { $set: updateData },
+      {
+        returnDocument: "after",
+        runValidators: true,
+      }
     );
 
     if (!user) {
@@ -79,10 +107,10 @@ app.patch("/user", async (req, res) => {
       message: "User updated successfully",
       user,
     });
-
   } catch (error) {
+    console.error("PATCH /user error:", error);
     res.status(500).json({
-      message: "Something went wrong",
+      message: "Internal server error",
       error: error.message,
     });
   }
