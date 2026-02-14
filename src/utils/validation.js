@@ -97,9 +97,64 @@ const validateLogin = (req) => {
   };
 };
 
+const validateProfileData = (req) => {
+  const updateData = req.body;
+  const { age, gender ,firstName,lastName} = updateData;
+
+  if (Object.keys(updateData).length === 0) {
+    throw new Error("No data provided to update");
+  }
+
+  const ALLOWED_UPDATES = ["photoUrl", "about", "gender", "age", "skills","firstName","lastName"];
+
+  const isUpdateAllowed = Object.keys(updateData).every((key) =>
+    ALLOWED_UPDATES.includes(key)
+  );
+
+  if (!isUpdateAllowed) {
+    throw new Error("Update is not allowed");
+  }
+
+
+  const trimmedFirstName = firstName.trim();
+  const trimmedLastName = lastName.trim();
+
+
+  if (!validator.isLength(trimmedFirstName, { min: 2, max: 50 })) {
+    throw new Error("First name must be between 2 and 50 characters");
+  }
+
+  if (!validator.isLength(trimmedLastName, { min: 2, max: 50 })) {
+    throw new Error("Last name must be between 2 and 50 characters");
+  }
+
+  if (age !== undefined) {
+    if (!Number.isInteger(age)) {
+      throw new Error("Age must be a valid integer");
+    }
+
+    if (age < 18 || age > 50) {
+      throw new Error("Age must be between 18 and 50");
+    }
+  }
+
+  if (gender !== undefined) {
+    if (!["male", "female", "others"].includes(gender)) {
+      throw new Error("Gender data is not valid");
+    }
+  }
+
+  return true;
+};
+
+
+
+
 
 
 module.exports = {
   validateSignUpData,
-  validateLogin
+  validateLogin,
+  validateProfileData
+  
 };
