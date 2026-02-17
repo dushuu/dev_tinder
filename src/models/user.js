@@ -74,6 +74,10 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+//adding indexing for manageing the queerry for masiveData base indexing will make things fast for seatching findby function
+
+userSchema.index({firstName:1,lastName:1})
+
 //it is good practice for attaching a user scema so every has an jwt token do write valiatepassword it makes readablety goods
 //arrow funtion it breaks things because (this ) kwyword does not works with arrow function
 
