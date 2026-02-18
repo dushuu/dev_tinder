@@ -1,11 +1,11 @@
 const express = require("express");
-const profileRouter = express.Router();
+const router = express.Router();
 const { userAuth } = require("../middlewares/auth");
 const ConnectionRequest = require("../models/connectionRequest");
 const User = require("../models/user");
 const mongoose = require("mongoose");
 
-profileRouter.post("/request/send", userAuth, async (req, res) => {
+router.post("/request/send", userAuth, async (req, res) => {
   try {
     const fromUserId = req.user._id;
     const { toUserId, status } = req.body;
@@ -79,7 +79,7 @@ profileRouter.post("/request/send", userAuth, async (req, res) => {
   }
 });
 
-profileRouter.get("/request/received", userAuth, async (req, res) => {
+router.get("/request/received", userAuth, async (req, res) => {
   try {
     const loggedInUserId = req.user._id;
 
@@ -97,7 +97,7 @@ profileRouter.get("/request/received", userAuth, async (req, res) => {
   }
 });
 
-profileRouter.post("/request/review", userAuth, async (req, res) => {
+router.post("/request/review", userAuth, async (req, res) => {
   try {
     const loggedinUser = req.user.id;
     const { status, requestId } = req.body;
@@ -137,4 +137,4 @@ profileRouter.post("/request/review", userAuth, async (req, res) => {
   }
 });
 
-module.exports = profileRouter;
+module.exports = router;
