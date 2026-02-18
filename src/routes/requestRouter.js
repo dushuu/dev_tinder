@@ -71,10 +71,67 @@ profileRouter.post("/request/send", userAuth, async (req, res) => {
     await existingRequest.save();
 
     return res.json({
-      message:
-      req.user.firstName + " is " + status + " in " + toUser.firstName,
+      message: req.user.firstName + " is " + status + " in " + toUser.firstName,
       data: existingRequest,
     });
+  } catch (err) {
+    res.status(500).send("Error: " + err.message);
+  }
+});
+
+profileRouter.get("/request/received", userAuth, async (req, res) => {
+  try {
+    const loggedInUserId = req.user._id;
+
+    const requests = await ConnectionRequest.find({
+      toUserId: loggedInUserId,
+      status: "interested",
+    }).populate("fromUserId", "firstName lastName email");
+
+    res.json({
+      message: "Pending connection requests",
+      data: requests,
+    });
+  } catch (err) {
+    res.status(500).send("Error: " + err.message);
+  }
+});
+
+profileRouter.post("/request/review", userAuth, async (req, res) => {
+  try {
+    const loggedinUser = req.user.id;
+    const { status, requestId } = req.body;
+    if (!requestId || !status) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(requestId)) {
+      return res.status(400).json({
+        message: "Invalid user ID format",
+      });
+    }
+
+    const allowedStatus = ["accepted", "rejected"];
+
+    if (!allowedStatus.includes(status)) {
+      return res.status(400).json({ message: "Invalid status type" });
+    }
+
+    const request = await ConnectionRequest.findOne({
+      _id: requestId,
+      toUserId: loggedinUser,
+      status: "interested",
+    }).populate("fromUserId", "firstName lastName email");
+
+    if (!request) {
+      return res.status(404).json({ message: "Connection request not found" });
+    }
+
+    request.status = status;
+
+    const data = await request.save();
+
+    res.json({ message: `Connection request has been ${status}`, data: data });
   } catch (err) {
     res.status(500).send("Error: " + err.message);
   }
