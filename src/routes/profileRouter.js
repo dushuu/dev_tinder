@@ -49,4 +49,54 @@ router.patch("/profile/edit", userAuth, async (req, res) => {
 });
 
 
+const bcrypt = require("bcrypt");
+
+router.post("/changePassword", userAuth, async (req, res) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+    const loggedInUser = req.user;
+
+    // 1️⃣ Validate input
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({
+        message: "Old password and new password are required",
+      });
+    }
+
+    const isMatch = await bcrypt.compare(
+      oldPassword,
+      loggedInUser.password
+    );
+
+    if (!isMatch) {
+      return res.status(400).json({
+        message: "Old password is incorrect",
+      });
+    }
+
+  
+    if (oldPassword === newPassword) {
+      return res.status(400).json({
+        message: "New password cannot be same as old password",
+      });
+    }
+
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+
+    loggedInUser.password = hashedPassword;
+    await loggedInUser.save();
+
+    res.json({
+      message: "Password changed successfully",
+    });
+
+  } catch (err) {
+    res.status(500).send("Error: " + err.message);
+  }
+});
+
+
+
 module.exports = router;
