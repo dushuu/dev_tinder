@@ -9,93 +9,118 @@ router.post("/request/send", userAuth, async (req, res) => {
   try {
     const fromUserId = req.user._id;
     const { toUserId, status } = req.body;
+
+    const allowedStatus = ["interested", "ignore"];
+
+    
     if (!toUserId || !status) {
-      return res.status(400).json({ message: "Missing required fields" });
+      return res.status(400).json({
+        message: "toUserId and status are required",
+      });
     }
+
+    
+
+    if (!allowedStatus.includes(status)) {
+      return res.status(400).json({
+        message: "Invalid status type",
+      });
+    }
+
     if (!mongoose.Types.ObjectId.isValid(toUserId)) {
       return res.status(400).json({
         message: "Invalid user ID format",
       });
     }
 
-    const toUser = await User.findById(toUserId);
-
-    if (!toUser) {
-      return res.status(400).json({ message: "user not found" });
-    }
-
-    const allowedStatus = ["ignore", "interested"];
-
-    if (!allowedStatus.includes(status)) {
-      return res.status(400).json({ message: "Invalid status type" });
-    }
-
-    // prevent sending to yourself
     if (fromUserId.toString() === toUserId) {
       return res.status(400).json({
-        message:
-          "You can not send connection to your self but self love is good :)",
+        message: "You cannot send connection request to yourself",
       });
     }
 
-    // check existing request
-    let existingRequest = await ConnectionRequest.findOne({
+    const toUser = await User.findById(toUserId);
+    if (!toUser) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+
+    const existingRequest = await ConnectionRequest.findOne({
+      $or: [
+        { fromUserId, toUserId },
+        { fromUserId: toUserId, toUserId: fromUserId },
+      ],
+    });
+
+    if (existingRequest) {
+
+
+      if (existingRequest.status === "accepted") {
+        return res.status(400).json({
+          message: "You are already connected",
+        });
+      }
+
+    
+      if (existingRequest.status === "rejected") {
+        return res.status(400).json({
+          message: "Cannot send connection request",
+        });
+      }
+
+
+      if (existingRequest.status === "interested") {
+        return res.status(400).json({
+          message: "Connection request already pending",
+        });
+      }
+
+      
+      if (existingRequest.status === "ignore") {
+
+     
+        if (existingRequest.fromUserId.toString() !== fromUserId.toString()) {
+          return res.status(400).json({
+            message: "Cannot resend request",
+          });
+        }
+
+     
+        existingRequest.status = status;
+        await existingRequest.save();
+
+        return res.json({
+          message: "now" + req.user.firstName + " is " + status + " in " + toUser.firstName,
+          data: existingRequest,
+        });
+      }
+    }
+
+  
+    const newRequest = await ConnectionRequest.create({
       fromUserId,
       toUserId,
+      status,
     });
-
-    if (!existingRequest) {
-      const newRequest = new ConnectionRequest({
-        fromUserId,
-        toUserId,
-        status,
-      });
-
-      const data = await newRequest.save();
-
-      return res.json({
-        message:
-          req.user.firstName + " is " + status + " in " + toUser.firstName,
-
-        data,
-      });
-    }
-
-    if (existingRequest.status === status) {
-      return res.status(400).json({
-        message: `Already marked as ${status}`,
-      });
-    }
-
-    existingRequest.status = status;
-    await existingRequest.save();
-
-    return res.json({
-      message: req.user.firstName + " is " + status + " in " + toUser.firstName,
-      data: existingRequest,
-    });
-  } catch (err) {
-    res.status(500).send("Error: " + err.message);
-  }
-});
-
-router.get("/request/received", userAuth, async (req, res) => {
-  try {
-    const loggedInUserId = req.user._id;
-
-    const requests = await ConnectionRequest.find({
-      toUserId: loggedInUserId,
-      status: "interested",
-    }).populate("fromUserId", "firstName lastName email");
 
     res.json({
-      message: "Pending connection requests",
-      data: requests,
+      message: req.user.firstName + " is " + status + " in " + toUser.firstName,
+      data: newRequest,
     });
+
   } catch (err) {
-    res.status(500).send("Error: " + err.message);
+    res.status(500).json({
+      message: "Server error",
+      error: err.message,
+    });
   }
 });
+
+
+
+
 
 router.post("/request/review", userAuth, async (req, res) => {
   try {
