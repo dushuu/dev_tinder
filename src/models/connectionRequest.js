@@ -1,32 +1,36 @@
 const mongoose = require("mongoose");
-const connectionRequestSchema = new mongoose.Schema({
-  //formUserID is senderId
-  fromUserId: {
-    type: mongoose.Schema.Types.ObjectId,
-    required:true
-  },
-  //recever userId
-  toUserId: {
-    type: mongoose.Schema.Types.ObjectId,
-    required:true
-  },
-  status: {
-    type: String,
-    enum: {
-      values: ["ignore", "interested", "accepted", "rejected"],
-      message:`{value} is not supported`
+const connectionRequestSchema = new mongoose.Schema(
+  {
+    //formUserID is senderId
+    fromUserId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      ref: "user", //here we created a refrence to user schema / user tabel now we can populate the data of user
     },
-    required:true
+    //recever userId
+    toUserId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      ref: "user"
+    },
+    status: {
+      type: String,
+      enum: {
+        values: ["ignore", "interested", "accepted", "rejected"],
+        message: `{value} is not supported`,
+      },
+      required: true,
+
+    },
+
   },
-},
-{ timestamps: true }
+  { timestamps: true }
 );
 
-
-connectionRequestSchema.index({fromUserId:1,toUserId:1},  { unique: true })
+connectionRequestSchema.index({ fromUserId: 1, toUserId: 1 }, { unique: true });
 //it we get called pre save mean save is kind of event before saveing it will get called
 
-connectionRequestSchema.pre("save", async  function () {
+connectionRequestSchema.pre("save", async function () {
   if (this.fromUserId.equals(this.toUserId)) {
     const err = new mongoose.Error.ValidationError(this);
     err.addError(
@@ -41,10 +45,13 @@ connectionRequestSchema.pre("save", async  function () {
   // next();
 });
 
-//for manage massive data we need indexing in data base and it will use full to maange queery and operation like findOne 
+//for manage massive data we need indexing in data base and it will use full to maange queery and operation like findOne
 //it help for make queery like searching , finding and delteiing operation
-//always use indexing on unquie and if u add a unquie on any field mongo db add indexing on it automatically 
+//always use indexing on unquie and if u add a unquie on any field mongo db add indexing on it automatically
 //there are three type of index ,unique indexing, spare ,compond indexing.
-const ConnectionRequestModel = new mongoose.model("ConnectionRequest",connectionRequestSchema)
+const ConnectionRequestModel = new mongoose.model(
+  "ConnectionRequest",
+  connectionRequestSchema
+);
 
-module.exports = ConnectionRequestModel
+module.exports = ConnectionRequestModel;
