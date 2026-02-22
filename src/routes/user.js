@@ -1,9 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const ConnectionRequest = require("../models/connectionRequest");
+const User = require("../models/user");
 const { userAuth } = require("../middlewares/auth");
 
-const USER_SAFE_DATA = "firstName lastName email age gender about skills";
+const USER_SAFE_DATA = "firstName lastName emailId age gender about skills";
 
 
 router.get("/request/received", userAuth, async (req, res) => {
@@ -51,6 +52,48 @@ router.get("/user/connection", userAuth, async (req, res) => {
       data,
     });
 
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.get("/user/feed", userAuth, async (req, res) => {
+  try {
+    const loggedInUserId = req.user._id;
+
+    let page = parseInt(req.query.page, 10) || 1;
+    let limit = parseInt(req.query.limit, 10) || 10;
+
+    page = Math.max(page, 1);
+    limit = Math.min(Math.max(limit, 1), 50);
+
+    const skip = (page - 1) * limit;
+
+    // Hide self + anyone already involved in a request with logged-in user.
+    const existingConnections = await ConnectionRequest.find({
+      $or: [{ fromUserId: loggedInUserId }, { toUserId: loggedInUserId }],
+    }).select("fromUserId toUserId");
+
+    const hideUsersFromFeed = new Set([loggedInUserId.toString()]);
+
+    existingConnections.forEach((connection) => {
+      hideUsersFromFeed.add(connection.fromUserId.toString());
+      hideUsersFromFeed.add(connection.toUserId.toString());
+    });
+
+    const feedUsers = await User.find({
+      _id: { $nin: Array.from(hideUsersFromFeed) },
+    })
+      .select("firstName lastName age gender about skills photoUrl")
+      .skip(skip)
+      .limit(limit);
+
+    res.json({
+      page,
+      limit,
+      count: feedUsers.length,
+      data: feedUsers,
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
