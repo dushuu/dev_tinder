@@ -59,7 +59,7 @@ router.get("/user/connection", userAuth, async (req, res) => {
 
 router.get("/user/feed", userAuth, async (req, res) => {
   try {
-    const loggedInUserId = req.user._id;
+    const loggedInUserId = req.user;
 
     let page = parseInt(req.query.page, 10) || 1;
     let limit = parseInt(req.query.limit, 10) || 10;
@@ -71,17 +71,17 @@ router.get("/user/feed", userAuth, async (req, res) => {
 
     // Hide self + anyone already involved in a request with logged-in user.
     const existingConnections = await ConnectionRequest.find({
-      $or: [{ fromUserId: loggedInUserId }, { toUserId: loggedInUserId }],
+      $or: [{ fromUserId: loggedInUserId._id }, { toUserId: loggedInUserId._id }],
     }).select("fromUserId toUserId");
 
-    const hideUsersFromFeed = new Set([loggedInUserId.toString()]);
+    const hideUsersFromFeed = new Set([loggedInUserId._id.toString()]);
 
     existingConnections.forEach((connection) => {
       hideUsersFromFeed.add(connection.fromUserId.toString());
       hideUsersFromFeed.add(connection.toUserId.toString());
     });
 
-    const feedUsers = await User.find({
+    const feedUsers = await User.find({ 
       _id: { $nin: Array.from(hideUsersFromFeed) },
     })
       .select("firstName lastName age gender about skills photoUrl")
